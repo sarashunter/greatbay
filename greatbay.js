@@ -4,6 +4,7 @@ var mysql = require('mysql');
 var mysql = require("mysql");
 var currentUserId = 0;
 
+//Establish connection to db.  Update details for local database.
 var connection = mysql.createConnection({
     host: "localhost",
 
@@ -24,13 +25,12 @@ connection.connect(function (err) {
 function afterConnection() {
     connection.query("SELECT * FROM items", function (err, res) {
         if (err) throw err;
-        // mainMenu();
         userMenu();
-        // connection.end();
+        //Open usermenu to start
     });
 }
 
-
+//Have user create username or login to existing user
 function userMenu() {
     inquirer.prompt([
         {
@@ -60,6 +60,7 @@ function userMenu() {
                     function (err, res) {
                         if (err) throw err;
 
+                        //Check password
                         if (res[0].password === credentials.password) {
                             console.log('Correct password');
                             currentUserId = res[0].id;
@@ -74,6 +75,8 @@ function userMenu() {
         else if (response.loginchoice === 'Exit') {
             connection.end();
         }
+
+        //create new user
         else {
             inquirer.prompt([
                 {
@@ -93,6 +96,8 @@ function userMenu() {
                     },
                     function (err, res) {
                         if (err) throw err;
+
+                        //check if user already exists
                         if (res.length > 0) {
                             console.log("That username is taken.")
                             userMenu();
@@ -174,7 +179,7 @@ function postItem() {
                 ownerID: currentUserId
             },
             function (err, response) {
-                // if (err) throw err;
+                if (err) throw err;
                 console.log("Added item");
             })
         mainMenu();
@@ -186,49 +191,48 @@ function bid() {
         if (err) throw err;
         var choicesArray = [];
 
-        console.log(`Item Number    Item   Highest Bidder  Highest Bid`);
-        res.forEach(function (element) {
-            choicesArray.push(element.id.toString());
-            console.log(`${element.id}  ${element.item_name}       ${element.highest_bidderID}       ${element.highest_bid}`);
-        })
+        if (res.length === 0) {
+            console.log('No current items');
+            mainMenu();
+        } else {
+            console.log(`Item Number    Item   Highest Bidder  Highest Bid`);
+            res.forEach(function (element) {
+                choicesArray.push(element.id.toString());
+                console.log(`${element.id}  ${element.item_name}       ${element.highest_bidderID}       ${element.highest_bid}`);
+            })
 
-        inquirer.prompt([
-            {
-                type: 'list',
-                choices: choicesArray,
-                message: 'What is the item number you would like to bid on?',
-                name: 'itemNumber'
-            },
-            {
-                type: 'input',
-                message: 'How much would you like to bid?',
-                name: 'bidAmt'
-            }
-        ]).then(function (response) {
-
-            //check current bid.  Compare.
-            connection.query("SELECT * FROM items WHERE ?",
+            inquirer.prompt([
                 {
-                    id: response.itemNumber
+                    type: 'list',
+                    choices: choicesArray,
+                    message: 'What is the item number you would like to bid on?',
+                    name: 'itemNumber'
                 },
-                function (err, res) {
-                    if (err) throw err;
+                {
+                    type: 'input',
+                    message: 'How much would you like to bid?',
+                    name: 'bidAmt'
+                }
+            ]).then(function (response) {
 
-                    if (parseFloat(response.bidAmt) > parseFloat(res[0].highest_bid)) {
-                        console.log("You have the new highest bid");
-                        updateHighBid(response.itemNumber, response.bidAmt);
-                    } else {
-                        console.log("That bid is not high enough");
-                        mainMenu();
-                    }
-                });
+                //check current bid.  Compare.
+                connection.query("SELECT * FROM items WHERE ?",
+                    {
+                        id: response.itemNumber
+                    },
+                    function (err, res) {
+                        if (err) throw err;
 
-            //if it's bigger, update
-
-            //else console.log
-            // mainMenu();
-        });
-
+                        if (parseFloat(response.bidAmt) > parseFloat(res[0].highest_bid)) {
+                            console.log("You have the new highest bid");
+                            updateHighBid(response.itemNumber, response.bidAmt);
+                        } else {
+                            console.log("That bid is not high enough");
+                            mainMenu();
+                        }
+                    });
+            });
+        }
     })
 
 }
