@@ -37,7 +37,7 @@ function userMenu() {
         {
             type: 'list',
             message: 'What do you want to do?',
-            choices: ['Log in as existing user', 'Create new user'],
+            choices: ['Log in as existing user', 'Create new user', 'Exit'],
             name: 'loginchoice'
         }
     ]).then(function (response) {
@@ -63,7 +63,8 @@ function userMenu() {
 
                         if(res[0].password === credentials.password){
                             console.log('Correct password');
-                            currentUserId=res.id;
+                            currentUserId=res[0].id;
+                            console.log('current user id is ' + currentUserId);
                             mainMenu();
                         }else{
                             console.log('Wrong username or password');
@@ -72,7 +73,10 @@ function userMenu() {
                     })
             });
         }
-        else{
+        else if(response.loginchoice === 'Exit'){
+            connection.end();
+        }
+        else {
             inquirer.prompt([
                 {
                     type: 'input',
@@ -147,7 +151,8 @@ function postItem() {
             {
                 item_name: response.itemtype,
                 highest_bid: 0,
-                highest_bidder: 'someone'
+                highest_bidderID: 0,
+                ownerID: currentUserId
             },
             function (err, response) {
                 // if (err) throw err;
@@ -166,7 +171,7 @@ function bid() {
         console.log(`Item Number    Item   Highest Bidder  Highest Bid`);
         res.forEach(function (element) {
             choicesArray.push(element.id.toString());
-            console.log(`${element.id}  ${element.item_name}       ${element.highest_bidder}       ${element.highest_bid}`);
+            console.log(`${element.id}  ${element.item_name}       ${element.highest_bidderID}       ${element.highest_bid}`);
         })
 
         inquirer.prompt([
@@ -182,7 +187,7 @@ function bid() {
                 name: 'bidAmt'
             }
         ]).then(function (response) {
-            console.log("in here?" + response.itemNumber);
+            
             //check current bid.  Compare.
             connection.query("SELECT * FROM items WHERE ?",
                 {
@@ -215,7 +220,8 @@ function updateHighBid(id, bid) {
     connection.query("UPDATE items SET ? WHERE ?",
         [
             {
-                highest_bid: bid
+                highest_bid: bid,
+                highest_bidderID: currentUserId
             },
             {
                 id: id
