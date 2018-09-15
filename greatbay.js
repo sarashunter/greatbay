@@ -17,14 +17,13 @@ var connection = mysql.createConnection({
 
 connection.connect(function (err) {
     if (err) throw err;
-    console.log("connected as id " + connection.threadId);
+    // console.log("connected as id " + connection.threadId);
     afterConnection();
 });
 
 function afterConnection() {
     connection.query("SELECT * FROM items", function (err, res) {
         if (err) throw err;
-        console.log(res);
         // mainMenu();
         userMenu();
         // connection.end();
@@ -61,19 +60,18 @@ function userMenu() {
                     function (err, res) {
                         if (err) throw err;
 
-                        if(res[0].password === credentials.password){
+                        if (res[0].password === credentials.password) {
                             console.log('Correct password');
-                            currentUserId=res[0].id;
-                            console.log('current user id is ' + currentUserId);
+                            currentUserId = res[0].id;
                             mainMenu();
-                        }else{
+                        } else {
                             console.log('Wrong username or password');
                             userMenu();
                         }
                     })
             });
         }
-        else if(response.loginchoice === 'Exit'){
+        else if (response.loginchoice === 'Exit') {
             connection.end();
         }
         else {
@@ -88,31 +86,30 @@ function userMenu() {
                     message: 'New password',
                     name: 'password'
                 }
-            ]).then(function (credentials){
+            ]).then(function (credentials) {
                 connection.query("SELECT * FROM users WHERE ?",
-                {
-                    user: credentials.username
-                },
-                function (err, res) {
-                    if (err) throw err;
-                    if(res.length > 0){
-                        console.log("That username is taken.")
-                        userMenu();
-                    }else{
-                        connection.query("INSERT INTO users SET ?",
-                        {
-                            user: credentials.username,
-                            password: credentials.password
-                        }, 
-                        function(err, res){
-                            if (err) throw err;
-                            console.log("New user added");
-                            console.log(res);
-                            currentUserId=res.insertId;
-                            mainMenu();
-                        })
-                    }
-                })
+                    {
+                        user: credentials.username
+                    },
+                    function (err, res) {
+                        if (err) throw err;
+                        if (res.length > 0) {
+                            console.log("That username is taken.")
+                            userMenu();
+                        } else {
+                            connection.query("INSERT INTO users SET ?",
+                                {
+                                    user: credentials.username,
+                                    password: credentials.password
+                                },
+                                function (err, res) {
+                                    if (err) throw err;
+                                    console.log("New user added");
+                                    currentUserId = res.insertId;
+                                    mainMenu();
+                                })
+                        }
+                    })
             })
         }
     })
@@ -123,17 +120,39 @@ function mainMenu() {
         {
             type: 'list',
             message: 'What do you want to do?',
-            choices: ['POST AN ITEM', 'BID ON AN ITEM', 'EXIT'],
+            choices: ['Check your items', 'Check your current winning bids', 'Post an item', 'Bid on an item', 'Exit'],
             name: 'action'
         }
     ]).then(function (response) {
         console.log(response.action);
-        if (response.action === 'POST AN ITEM') {
+        if (response.action === 'Check your items') {
+            connection.query("SELECT * FROM items WHERE ?", {
+                ownerID: currentUserId
+            }, function (err, currentItems) {
+                if (err) throw err;
+                currentItems.forEach(function (element) {
+                    console.log(`${element.item_name}               ${element.highest_bid}`)
+                })
+                mainMenu();
+            })
+        } else if (response.action === 'Check your current winning bids') {
+            connection.query("SELECT * FROM items WHERE ?", {
+                highest_bidderID: currentUserId
+            }, function (err, currentBids) {
+                if (err) throw err;
+
+                currentBids.forEach(function (element) {
+                    console.log(`${element.item_name}           ${element.highest_bid}`)
+                })
+                mainMenu();
+            })
+        }
+        else if (response.action === 'Post an item') {
             postItem();
-        } else if (response.action === 'BID ON AN ITEM') {
+        } else if (response.action === 'Bid on an item') {
             bid();
         }
-        else if (response.action === 'EXIT') {
+        else if (response.action === 'Exit') {
             connection.end();
         }
     });
@@ -167,7 +186,6 @@ function bid() {
         if (err) throw err;
         var choicesArray = [];
 
-        console.log(res);
         console.log(`Item Number    Item   Highest Bidder  Highest Bid`);
         res.forEach(function (element) {
             choicesArray.push(element.id.toString());
@@ -187,7 +205,7 @@ function bid() {
                 name: 'bidAmt'
             }
         ]).then(function (response) {
-            
+
             //check current bid.  Compare.
             connection.query("SELECT * FROM items WHERE ?",
                 {
@@ -195,8 +213,7 @@ function bid() {
                 },
                 function (err, res) {
                     if (err) throw err;
-                    console.log(res);
-                    console.log(res[0].highest_bid);
+
                     if (parseFloat(response.bidAmt) > parseFloat(res[0].highest_bid)) {
                         console.log("You have the new highest bid");
                         updateHighBid(response.itemNumber, response.bidAmt);
