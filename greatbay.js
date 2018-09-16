@@ -1,7 +1,6 @@
 var inquirer = require('inquirer');
 var mysql = require('mysql');
 
-var mysql = require("mysql");
 var currentUserId = 0;
 
 //Establish connection to db.  Update details for local database.
